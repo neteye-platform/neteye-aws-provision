@@ -8,7 +8,7 @@ The infrastructure deploys a multi-node NetEye cluster inside a single VPC with 
 
 ```
                         ┌─────────────────────────────────────────────────────────────────────┐
-                        │                            AWS VPC (/22)                             │
+                        │                            AWS VPC (/22)                            │
                         │                                                                     │
      Internet           │   ┌───────────────────────── Public Subnet (/24) ──────────────┐    │
         │               │   │                                                            │    │
@@ -26,8 +26,8 @@ The infrastructure deploys a multi-node NetEye cluster inside a single VPC with 
         │               │   │          │            │  ENI (eth1)│   │                   │    │
         │               │   │          │            │  per node  │   │                   │    │
         │               │   └──────────┼────────────┴────────────┴───┘                   │    │
-        │               │              │                     ▲                            │    │
-        │               │              ▼                     │                            │    │
+        │               │              │                     ▲                           │    │
+        │               │              ▼                     │                           │    │
         │               │   ┌───────────────────────── Private Subnet (/23) ─────────────┐    │
         │               │   │                                                            │    │
         │               │   │   ┌──────────────┐    ┌──────────┐  ┌──────────┐           │    │
