@@ -1,0 +1,160 @@
+---
+- name: Configure basic NetEye machine setup
+  hosts: nodes
+  gather_facts: true
+  any_errors_fatal: true
+  become: true
+
+  vars:
+    php_version: "7.4"
+    python36_version: "3.6"
+
+    neteye_groups_to_install:
+      - "@base"
+      - "@core"
+      - "@neteye"
+      - "@neteye-tools"
+
+    additional_groups_to_install: []
+    ssh_key_path: "/root/.ssh/id_ed25519"
+  tasks:
+    - name: Ensure NetEye version is defined
+      ansible.builtin.assert:
+        that:
+          - neteye_version is defined
+        fail_msg: "neteye_version variable is not defined."
+
+    - name: Basic configuration | Install firewalld
+      ansible.builtin.dnf:
+        name:
+          - "firewalld"
+        state: present
+
+    - name: Basic configuration | Enable and start firewalld
+      ansible.builtin.service:
+        name: firewalld
+        state: started
+        enabled: true
+
+    - name: Basic configuration | Set trusted zone and bring down the connection
+      community.general.nmcli:
+        type: ethernet
+        conn_name: "eth0"
+        zone: trusted
+        state: present
+
+    - name: Basic configuration | Bring up the connection to apply the new zone
+      ansible.builtin.shell: "nmcli connection down '{{ item }}' && nmcli connection up '{{ item }}'"
+      changed_when: false
+      loop:
+        - eth0
+        - eth1
+
+    - name: Configure Repos | manage rhel repos
+      ansible.builtin.command:
+        cmd: "subscription-manager config --rhsm.manage_repos=1"
+      changed_when: false
+
+    - name: Configure Repos | override appstream repo to prevent ansible-core upgrade
+      ansible.builtin.command:
+        cmd: "subscription-manager repo-override --repo=rhel-8-for-x86_64-appstream-rpms --add=exclude:ansible-core*"
+      changed_when: false
+
+    - name: Configure Repos | enable rhel repos
+      ansible.builtin.command:
+        cmd: "subscription-manager repos --enable rhel-8-for-x86_64-baseos-rpms --enable codeready-builder-for-rhel-8-x86_64-rpms --enable ansible-2-for-rhel-8-x86_64-rpms
+          --enable rhel-8-for-x86_64-highavailability-rpms --enable openstack-15-tools-for-rhel-8-x86_64-rpms"
+      changed_when: false
+
+    - name: install | Install streams
+      ansible.builtin.dnf:
+        name:
+          - "@php:{{ php_version }}"
+          - "@python36:{{ python36_version }}"
+        state: present
+        disablerepo:
+          - "neteye*"
+
+    - name: Configure Repos | install NetEye repository definitions
+      ansible.builtin.dnf:
+        name:
+          - "neteye"
+          - "neteye-stable"
+        state: present
+        enablerepo:
+          - "neteye"
+          - "neteye-os"
+
+    - name: Configure Repos | remove NetEye temporary repos
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /etc/yum.repos.d/Rhel-NetEye-temporary.repo
+
+    - name: Configure Repos | clean yum cache
+      ansible.builtin.command: "dnf clean metadata"
+      changed_when: false
+
+    - name: Configure Repos | add rpm mirror before running installer
+      ansible.builtin.command: "neteye rpmmirror apply"
+      changed_when: false
+      run_once: true
+      delegate_to: localhost
+
+    - name: Install | install groups
+      ansible.builtin.command: "dnf install {{ (neteye_groups_to_install + additional_groups_to_install | default([])) | join(' ') }} -y --enablerepo=neteye,neteye-os"
+      environment:
+        DNF0: "{{ neteye_version }}"
+
+    - name: Install | update system packages
+      ansible.builtin.dnf:
+        name: "*"
+        state: latest # noqa: package-latest
+        disablerepo:
+          - "neteye*"
+        exclude:
+          - ansible-core
+
+    - name: Configure System | set SELinux to permissive in config file
+      ansible.builtin.lineinfile:
+        path: /etc/selinux/config
+        regexp: "^SELINUX="
+        line: "SELINUX=permissive"
+        backup: true
+
+    - name: Configure System | set SELinux to permissive mode immediately
+      ansible.builtin.command: setenforce permissive
+      changed_when: false
+
+    - name: Install AWS cli and resource agents
+      ansible.builtin.dnf:
+        name:
+          - "awscli"
+          - "resource-agents"
+        state: present
+
+    - name: Create the PV
+      community.general.lvm_pv:
+        device: /dev/nvme1n1
+
+    - name: Create the VG
+      community.general.lvg:
+        vg: vg00
+        pvs: /dev/nvme1n1
+
+    - name: Get external ip
+      ansible.builtin.shell: ip -4 -o addr show dev eth1 | awk '{split($4,a,"/"); print a[1]}'
+      register: external_ip
+
+    - name: Get hostname
+      ansible.builtin.shell: hostname
+      register: hostname
+    
+    # add also te ones of other nodes in inventory to avoid issues in case of failover
+    - name: Add external IP to /etc/hosts
+      ansible.builtin.lineinfile:
+        path: /etc/hosts
+        line: "{{ hostvars[item].external_ip.stdout }} {{ hostvars[item].hostname.stdout }}"
+        state: present
+      loop: "{{ groups['all'] }}"
