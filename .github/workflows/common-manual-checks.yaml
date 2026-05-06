@@ -1,0 +1,22 @@
+name: Common Manual Checks
+
+on:
+  workflow_dispatch:
+    inputs:
+      jobs_to_run:
+        description: |
+          Comma-separated list of jobs to run. Default is 'all'.
+          Refer to https://github.com/neteye-platform/repo-commons/blob/main/.github/workflows/common-manual-checks.yaml
+        required: false
+        default: all
+        type: string
+
+permissions: write-all
+
+jobs:
+  common-manual-checks:
+    uses: neteye-platform/repo-commons/.github/workflows/common-manual-checks.yaml@f83f660abb176d6cd448b89c21e89a00bb61cf95 # main
+    secrets: inherit
+    with:
+      jobs_to_run: ${{ inputs.jobs_to_run }}
+      template_repo: "neteye-platform/default-repository-template"
