@@ -32,6 +32,14 @@ resource "aws_subnet" "public" {
   tags = { Name = "${var.project}-public" }
 }
 
+resource "aws_vpc_endpoint" "s3" {
+  vpc_id            = aws_vpc.main.id
+  service_name      = "com.amazonaws.eu-south-1.s3"
+  vpc_endpoint_type = "Gateway"
+
+  route_table_ids = [aws_route_table.public.id, aws_route_table.private.id]
+}
+
 ## NI
 
 # Create a network interface in the public subnet for each instance

@@ -71,3 +71,39 @@ variable "instance_type" {
   type        = string
   default     = "c6i.4xlarge"
 }
+
+variable "additional_hostnames_allowed_for_outgoing" {
+  description = "List of hostnames to resolve and allow for outgoing traffic, in addition to the default ones"
+  type        = list(string)
+  default     = []
+}
+
+variable "hostnames_allowed_for_outgoing" {
+  description = "List of hostnames to resolve and allow for outgoing traffic"
+  type        = list(string)
+  # Minimum documented 
+  default     = [
+    "repo.wuerth-phoenix.com", 
+    "api.neteye.cloud", 
+    "cdn.redhat.com", 
+    "cdn-ubi.redhat.com", 
+    "cert-api.access.redhat.com", 
+    "cert.cloud.redhat.com",
+    "subscription.rhsm.redhat.com",
+    "mirrors.fedoraproject.org",
+    "2.rhel.pool.ntp.org",
+    "grafana.com",
+    "yum.centreon.com",
+    "rubygems.org",
+    "epr.elastic.co",
+    # AWS-specific — only RHUI is needed here; SSM and S3 are
+    # handled by VPC endpoints + self/prefix-list egress rules.
+    "rhui.eu-south-1.aws.ce.redhat.com"
+  ]
+}
+
+variable "ip_allowed_for_outgoing" {
+  description = "List of CIDR blocks allowed for outgoing traffic (in addition to those resolved from hostnames)"
+  type        = list(string)
+  default     = []
+}

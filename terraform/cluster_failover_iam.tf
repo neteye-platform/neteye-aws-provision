@@ -53,8 +53,18 @@ resource "aws_iam_access_key" "cluster_node" {
   user = aws_iam_user.cluster_node.name
 }
 
-resource "aws_iam_user_policy" "cluster_node" {
+resource "aws_iam_group" "cluster_node" {
+  name = "${var.project}-cluster-node"
+}
+
+resource "aws_iam_group_membership" "cluster_node" {
+  name  = "${var.project}-cluster-node"
+  group = aws_iam_group.cluster_node.name
+  users = [aws_iam_user.cluster_node.name]
+}
+
+resource "aws_iam_group_policy" "cluster_node" {
   name   = "${var.project}-cluster-failover"
-  user   = aws_iam_user.cluster_node.name
+  group  = aws_iam_group.cluster_node.name
   policy = aws_iam_role_policy.cluster_failover.policy
 }

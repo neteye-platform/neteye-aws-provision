@@ -16,11 +16,27 @@ locals {
 }
 
 # Use the minimum IP and netmask to calculate the CIDR block for the VPC
+data "dns_a_record_set" "outgoing" {
+  for_each = toset(concat(var.hostnames_allowed_for_outgoing, var.additional_hostnames_allowed_for_outgoing))
+  host     = each.value
+}
+
+locals {
+  resolved_outgoing_cidrs = flatten([
+    for host in concat(var.hostnames_allowed_for_outgoing, var.additional_hostnames_allowed_for_outgoing) :
+    [for ip in data.dns_a_record_set.outgoing[host].addrs : "${ip}/32"]
+  ])
+}
+
 data "external" "cidr_expand" {
   program = ["python3", "${path.module}/helpers/get_cidr_blocks.py"]
   query = {
     nodes_ip     = jsonencode([for node in local.all_nodes : node.addr])
   }
+}
+
+data "aws_prefix_list" "s3" {
+  name = "com.amazonaws.${var.aws_region}.s3"
 }
 
 ## IAM
@@ -49,11 +65,30 @@ resource "aws_security_group" "main" {
   }
 
   egress {
-    description = "All outbound traffic"
+    description = "Allowed outbound traffic"
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = concat(var.ip_allowed_for_outgoing, local.resolved_outgoing_cidrs)
+  }
+
+  # Allow traffic to VPC Interface endpoints (SSM, SSMMessages, EC2Messages)
+  # and inter-node communication — all share this security group
+  egress {
+    description = "VPC endpoints and inter-node traffic"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    self        = true
+  }
+
+  # Allow traffic to S3 via the Gateway VPC endpoint
+  egress {
+    description     = "S3 via Gateway endpoint"
+    from_port       = 443
+    to_port         = 443
+    protocol        = "tcp"
+    prefix_list_ids = [data.aws_prefix_list.s3.id]
   }
 
   tags = {
@@ -96,6 +131,11 @@ resource "aws_instance" "node" {
   })
 
   
+  metadata_options {
+    http_tokens   = "required"
+    http_endpoint = "enabled"
+  }
+
   tags = {
     Name = local.all_nodes[count.index]["hostname_ext"]
   }

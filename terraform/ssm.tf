@@ -61,3 +61,25 @@ resource "aws_vpc_endpoint" "ec2messages" {
   private_dns_enabled = true
   tags = { Name = "${var.project}-ec2messages-vpce" }
 }
+
+
+# VPC endpoints for AWS CLI operations (cluster failover scripts)
+resource "aws_vpc_endpoint" "ec2" {
+  vpc_id              = aws_vpc.main.id
+  service_name        = "com.amazonaws.${var.aws_region}.ec2"
+  vpc_endpoint_type   = "Interface"
+  subnet_ids          = local.private_subnet_ids
+  security_group_ids  = [aws_security_group.main.id]
+  private_dns_enabled = true
+  tags = { Name = "${var.project}-ec2-vpce" }
+}
+
+resource "aws_vpc_endpoint" "elasticloadbalancing" {
+  vpc_id              = aws_vpc.main.id
+  service_name        = "com.amazonaws.${var.aws_region}.elasticloadbalancing"
+  vpc_endpoint_type   = "Interface"
+  subnet_ids          = local.private_subnet_ids
+  security_group_ids  = [aws_security_group.main.id]
+  private_dns_enabled = true
+  tags = { Name = "${var.project}-elb-vpce" }
+}

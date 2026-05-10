@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Install SSM agent for Session Manager access
-dnf install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_amd64/amazon-ssm-agent.rpm
+dnf install -y https://s3.eu-south-1.amazonaws.com/amazon-ssm-eu-south-1/latest/linux_amd64/amazon-ssm-agent.rpm
 
 systemctl enable --now amazon-ssm-agent
 
