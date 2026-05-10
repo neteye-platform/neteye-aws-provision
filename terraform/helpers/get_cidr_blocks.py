@@ -37,7 +37,9 @@ if subnet_2:
     result["private_subnet_prefix"] = str(subnet_2.prefixlen)
 
 # Reserve nodes IPs in the public subnet, starting from the 6th host (first 5 are reserved for AWS)
-result["public_nodes_ip"] = json.dumps([str(h) for h in list(subnet_1.hosts())[5:len(nodes_ip)+5]])
+result["public_nodes_ip"] = json.dumps(
+    [str(h) for h in list(subnet_1.hosts())[5 : len(nodes_ip) + 5]]
+)
 
 # Get a random IP from the public subnet that is not in nodes_ip, starting from the 6th host (first 5 are reserved for AWS)
 ips = list(subnet_1.hosts())[5:]

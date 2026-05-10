@@ -2,7 +2,7 @@
   "ClusterInterface": "ens224",
   "Hostname": "neteye.example.com",
   "ClusterCIDR": 24,
-  "ClusterIp": "10.0.0.99", 
+  "ClusterIp": "10.0.0.99",
   "Deployment": "aws",
   "Nodes": [
     {

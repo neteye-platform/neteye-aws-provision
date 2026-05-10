@@ -76,7 +76,7 @@ HOSTS
 %{ for n in all_nodes ~}
 ssh-keyscan ${n.hostname} >> ~/.ssh/known_hosts
 %{ endfor ~}
- 
+
 # Rename connections to match the device name, so that they are consistent across reboots and can be easily referenced in Ansible playbooks
 nmcli -t -f NAME,DEVICE connection show --active | while IFS=: read -r name dev; do
   if [ -n "$dev" ]; then
@@ -88,7 +88,7 @@ echo "${cluster_config}" > /etc/neteye-cluster.template
 
 # Write cluster configuration changing the cluster IP, CIDR and cluster interface.
 jq \
-  '.ClusterIp = $ip 
+  '.ClusterIp = $ip
    | .ClusterCIDR = 24
    | .ClusterInterface = "eth0"' \
   --arg ip "${cluster_ip}" \

@@ -81,13 +81,13 @@ variable "additional_hostnames_allowed_for_outgoing" {
 variable "hostnames_allowed_for_outgoing" {
   description = "List of hostnames to resolve and allow for outgoing traffic"
   type        = list(string)
-  # Minimum documented 
+  # Minimum documented
   default     = [
-    "repo.wuerth-phoenix.com", 
-    "api.neteye.cloud", 
-    "cdn.redhat.com", 
-    "cdn-ubi.redhat.com", 
-    "cert-api.access.redhat.com", 
+    "repo.wuerth-phoenix.com",
+    "api.neteye.cloud",
+    "cdn.redhat.com",
+    "cdn-ubi.redhat.com",
+    "cert-api.access.redhat.com",
     "cert.cloud.redhat.com",
     "subscription.rhsm.redhat.com",
     "mirrors.fedoraproject.org",

@@ -130,7 +130,7 @@ resource "aws_instance" "node" {
     aws_region          = var.aws_region
   })
 
-  
+
   metadata_options {
     http_tokens   = "required"
     http_endpoint = "enabled"

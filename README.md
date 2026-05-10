@@ -6,7 +6,7 @@ Automated deployment of a [NetEye 4](https://www.neteye-blog.com/) monitoring cl
 
 The infrastructure deploys a multi-node NetEye cluster inside a single VPC with public and private subnets, leveraging Network Load Balancers for both internal service routing and external access.
 
-```
+```text
                         ┌─────────────────────────────────────────────────────────────────────┐
                         │                            AWS VPC (/22)                            │
                         │                                                                     │
@@ -48,7 +48,7 @@ The infrastructure deploys a multi-node NetEye cluster inside a single VPC with 
 ### Key Components
 
 | Component | Description |
-|-----------|-------------|
+| --------- | ----------- |
 | **VPC** | A `/22` network automatically computed from the node IPs defined in `cluster_config.json` |
 | **Private Subnet** (`/23`) | Hosts the EC2 instances (cluster nodes) on their primary interface (`eth0`) |
 | **Public Subnet** (`/24`) | Hosts the NAT Gateway, Internet Gateway, and secondary ENIs (`eth1`) for each node |
@@ -73,7 +73,7 @@ This is handled by the `cluster_failover_iam` policy attached to both the node i
 
 ## Repository Structure
 
-```
+```text
 src/
 ├── terraform/                  # Infrastructure as Code
 │   ├── main.tf                 # Provider, locals, security group, EC2 instances
@@ -155,7 +155,6 @@ ansible-playbook -i /root/inventory.ini convert_to_neteye.yaml -e neteye_version
 
 Proceed with the usual NetEye installation following the official [User Guide](https://neteye.guide/current/getting-started/system-installation/cluster.html)
 
-
 ## Accessing Nodes
 
 Nodes have no public IP. Access is provided via **AWS Systems Manager Session Manager**:
@@ -175,7 +174,7 @@ aws ssm start-session --target <instance-id>
 ## Variables Reference
 
 | Variable | Description | Default |
-|----------|-------------|---------|
+| -------- | ----------- | ------- |
 | `aws_region` | AWS region | `eu-south-1` |
 | `availability_zone` | AZ for all resources | `eu-south-1a` |
 | `neteye_version` | NetEye version to deploy | — (required) |

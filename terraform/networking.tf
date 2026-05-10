@@ -63,7 +63,7 @@ resource "aws_network_interface_attachment" "public_iface" {
 }
 
 
-## INTERNET GATEWAY 
+## INTERNET GATEWAY
 
 resource "aws_internet_gateway" "neteye-igw" {
   vpc_id = aws_vpc.main.id

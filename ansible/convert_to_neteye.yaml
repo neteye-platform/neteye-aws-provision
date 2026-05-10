@@ -62,11 +62,16 @@
 
     - name: Configure Repos | enable rhel repos
       ansible.builtin.command:
-        cmd: "subscription-manager repos --enable rhel-8-for-x86_64-baseos-rpms --enable codeready-builder-for-rhel-8-x86_64-rpms --enable ansible-2-for-rhel-8-x86_64-rpms
-          --enable rhel-8-for-x86_64-highavailability-rpms --enable openstack-15-tools-for-rhel-8-x86_64-rpms"
+        cmd: >-
+          subscription-manager repos
+          --enable rhel-8-for-x86_64-baseos-rpms
+          --enable codeready-builder-for-rhel-8-x86_64-rpms
+          --enable ansible-2-for-rhel-8-x86_64-rpms
+          --enable rhel-8-for-x86_64-highavailability-rpms
+          --enable openstack-15-tools-for-rhel-8-x86_64-rpms
       changed_when: false
 
-    - name: install | Install streams
+    - name: Install | Install streams
       ansible.builtin.dnf:
         name:
           - "@php:{{ php_version }}"
@@ -96,14 +101,20 @@
       ansible.builtin.command: "dnf clean metadata"
       changed_when: false
 
-    - name: Configure Repos | add rpm mirror before running installer
+    - name: Configure Repos | add rpm mirror before running installer # noqa: run-once[task]
       ansible.builtin.command: "neteye rpmmirror apply"
       changed_when: false
       run_once: true
       delegate_to: localhost
 
     - name: Install | install groups
-      ansible.builtin.command: "dnf install {{ (neteye_groups_to_install + additional_groups_to_install | default([])) | join(' ') }} -y --enablerepo=neteye,neteye-os"
+      ansible.builtin.command:
+        cmd: >-
+          dnf install
+          {{ (neteye_groups_to_install +
+          additional_groups_to_install | default([])) | join(' ') }}
+          -y --enablerepo=neteye,neteye-os
+      changed_when: true
       environment:
         DNF0: "{{ neteye_version }}"
 
@@ -134,24 +145,23 @@
           - "resource-agents"
         state: present
 
-    - name: Create the PV
-      community.general.lvm_pv:
-        device: /dev/nvme1n1
-
     - name: Create the VG
       community.general.lvg:
         vg: vg00
         pvs: /dev/nvme1n1
 
     - name: Get external ip
-      ansible.builtin.shell: ip -4 -o addr show dev eth1 | awk '{split($4,a,"/"); print a[1]}'
+      ansible.builtin.shell:
+        cmd: set -o pipefail && ip -4 -o addr show dev eth1 | awk '{split($4,a,"/"); print a[1]}'
+      changed_when: false
       register: external_ip
 
     - name: Get hostname
-      ansible.builtin.shell: hostname
+      ansible.builtin.command: hostname
+      changed_when: false
       register: hostname
-    
-    # add also te ones of other nodes in inventory to avoid issues in case of failover
+
+    # add also the ones of other nodes in inventory to avoid issues in case of failover
     - name: Add external IP to /etc/hosts
       ansible.builtin.lineinfile:
         path: /etc/hosts

@@ -27,7 +27,7 @@ resource "aws_lb" "public" {
     subnet_id     = aws_subnet.public.id
     allocation_id = var.cluster_ip_allocation_id
   }
-  
+
   enable_cross_zone_load_balancing = false
 
   tags = { Name = "${var.project}-public-nlb" }
