@@ -1,0 +1,30 @@
+{
+  "ClusterInterface": "ens224",
+  "Hostname": "neteye.example.com",
+  "ClusterCIDR": 24,
+  "ClusterIp": "10.0.0.99",
+  "Deployment": "aws",
+  "Nodes": [
+    {
+      "addr": "192.168.47.1",
+      "hostname": "neteye01.neteyelocal",
+      "hostname_ext": "neteye01.aws.com",
+      "id": 1,
+      "roles": ["mariadb"]
+    },
+    {
+      "addr": "192.168.47.2",
+      "hostname": "neteye02.neteyelocal",
+      "hostname_ext": "neteye02.aws.com",
+      "id": 2,
+      "roles": ["mariadb"]
+    }
+  ],
+  "VotingOnlyNode": {
+    "addr": "192.168.47.3",
+    "hostname": "neteye03.neteyelocal",
+    "hostname_ext": "neteye03.aws.com",
+    "id": 3,
+    "roles": ["mariadb"]
+  }
+}

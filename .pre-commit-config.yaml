@@ -50,6 +50,7 @@ repos:
     rev: 745eface02aef23e168a8afb6b5737818efbea95 # frozen: v0.11.0.1
     hooks:
       - id: shellcheck
+        exclude: \.tpl$
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: 6fec9b7edb08fd9989088709d864a7826dc74e80 # frozen: v0.15.12

@@ -1,0 +1,8 @@
+# MFA for user, PCS does not support it
+AWS-0123
+
+# Public LB: used to expose the UI through IP filtering
+AWS-0053
+
+# VPC logs: avoiding enabling cloud watch by default
+AWS-0178
