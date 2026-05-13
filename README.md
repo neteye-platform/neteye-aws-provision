@@ -120,10 +120,10 @@ Edit `src/terraform/cluster_config.json` to define your nodes:
   "VotingOnlyNode": { ... }
 }
 ```
+
 > [!WARNING]
 > Remember to set `Deployment` to `aws`!
-> 
-
+>
 
 ### 2. Set your variables
 
