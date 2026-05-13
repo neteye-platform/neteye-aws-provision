@@ -112,6 +112,7 @@ Edit `src/terraform/cluster_config.json` to define your nodes:
 ```json
 {
   "Hostname": "neteye.example.com",
+  "Deployment": "aws",
   "Nodes": [
     { "addr": "192.168.47.1", "hostname": "neteye01.neteyelocal", "hostname_ext": "neteye01.aws.com", "id": 1, "roles": ["mariadb"] },
     { "addr": "192.168.47.2", "hostname": "neteye02.neteyelocal", "hostname_ext": "neteye02.aws.com", "id": 2, "roles": ["mariadb"] }
@@ -119,6 +120,10 @@ Edit `src/terraform/cluster_config.json` to define your nodes:
   "VotingOnlyNode": { ... }
 }
 ```
+
+> [!WARNING]
+> Remember to set `Deployment` to `aws`!
+>
 
 ### 2. Set your variables
 
