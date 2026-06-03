@@ -55,8 +55,13 @@ variable exposed_ports {
   default     = [443, 5665]
 }
 
-variable ip_filtering_allow_list {
-  description = "List of CIDR blocks allowed to access the cluster"
+variable web_ip_filtering_allow_list {
+  description = "List of CIDR blocks allowed to access the WEB interface of the cluster"
+  type        = list(string)
+}
+
+variable data_ip_filtering_allow_list {
+  description = "List of CIDR blocks allowed to contact the cluster for data collection (e.g., from satellite sites)"
   type        = list(string)
 }
 

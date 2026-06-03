@@ -133,7 +133,8 @@ Edit `src/terraform/terraform.tfvars`:
 outgoing_ip_allocation_id = "eipalloc-..."
 cluster_ip_allocation_id  = "eipalloc-..."
 neteye_version            = "4.48-sr1"
-ip_filtering_allow_list   = ["203.0.113.0/32"]
+web_ip_filtering_allow_list   = ["203.0.113.0/32"]
+data_ip_filtering_allow_list   = ["203.0.113.0/32"]
 ```
 
 ### 3. Deploy infrastructure
@@ -187,7 +188,8 @@ aws ssm start-session --target <instance-id>
 | `instance_type` | EC2 instance type | `c6i.4xlarge` |
 | `volume_group_size` | Data volume size (GB) | `60` |
 | `exposed_ports` | Ports exposed via public NLB | `[443, 5665]` |
-| `ip_filtering_allow_list` | CIDRs allowed through the NLB | — (required) |
+| `web_ip_filtering_allow_list` | CIDRs allowed through the NLB to reach the web interface, port 443 | — (required) |
+| `data_ip_filtering_allow_list` | CIDRs allowed through the NLB to reach other ports different from 443 (i.e. 5665, 9200, etc) | — (required) |
 | `outgoing_ip_allocation_id` | EIP allocation for NAT GW | — (required) |
 | `cluster_ip_allocation_id` | EIP allocation for public endpoint | — (required) |
 | `project` | Resource name prefix | `neteye` |
