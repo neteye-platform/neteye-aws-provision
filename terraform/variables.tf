@@ -39,6 +39,12 @@ variable "volume_group_size" {
   default     = 60
 }
 
+variable "volume_group_size_by_hostname" {
+  description = "Optional per-host override for vg00 size in GB. Keys must match node hostname_ext in cluster_config.json"
+  type        = map(number)
+  default     = {}
+}
+
 variable outgoing_ip_allocation_id {
   description = "List of EIP allocation ID for outgoing traffic"
   type        = string

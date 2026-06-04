@@ -157,7 +157,7 @@ resource "aws_instance" "node" {
 
   ebs_block_device {
     device_name           = "/dev/sdb"
-    volume_size           = var.volume_group_size
+    volume_size           = lookup(var.volume_group_size_by_hostname, local.all_nodes[count.index]["hostname_ext"], var.volume_group_size)
     volume_type           = "gp3"
     delete_on_termination = true
     encrypted             = true

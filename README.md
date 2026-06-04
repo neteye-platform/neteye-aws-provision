@@ -135,6 +135,10 @@ cluster_ip_allocation_id  = "eipalloc-..."
 neteye_version            = "4.48-sr1"
 web_ip_filtering_allow_list   = ["203.0.113.0/32"]
 data_ip_filtering_allow_list   = ["203.0.113.0/32"]
+volume_group_size_by_hostname = {
+  "neteye01.aws.com" = 100
+  "neteye02.aws.com" = 200
+}
 ```
 
 ### 3. Deploy infrastructure
@@ -187,6 +191,7 @@ aws ssm start-session --target <instance-id>
 | `ec2_ami` | RHEL 8 AMI ID | `ami-0611ece2c5afd38ef` |
 | `instance_type` | EC2 instance type | `c6i.4xlarge` |
 | `volume_group_size` | Data volume size (GB) | `60` |
+| `volume_group_size_by_hostname` | Optional map to override Data volume size (GB) per node hostname_ext | `{}` |
 | `exposed_ports` | Ports exposed via public NLB | `[443, 5665]` |
 | `web_ip_filtering_allow_list` | CIDRs allowed through the NLB to reach the web interface, port 443 | — (required) |
 | `data_ip_filtering_allow_list` | CIDRs allowed through the NLB to reach other ports different from 443 (i.e. 5665, 9200, etc) | — (required) |
