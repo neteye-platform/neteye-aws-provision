@@ -29,6 +29,8 @@
         name:
           - "firewalld"
         state: present
+      environment:
+        DNF0: "{{ neteye_version }}"
 
     - name: Basic configuration | Enable and start firewalld
       ansible.builtin.service:
@@ -102,10 +104,10 @@
       changed_when: false
 
     - name: Configure Repos | add rpm mirror before running installer # noqa: run-once[task]
-      ansible.builtin.command: "neteye rpmmirror apply"
+      ansible.builtin.command: "/usr/sbin/neteye rpmmirror apply"
       changed_when: false
       run_once: true
-      delegate_to: localhost
+      delegate_to: '{{ groups["nodes"][0] }}'
 
     - name: Install | install groups
       ansible.builtin.command:
