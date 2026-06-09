@@ -135,9 +135,14 @@ cluster_ip_allocation_id  = "eipalloc-..."
 neteye_version            = "4.48-sr1"
 web_ip_filtering_allow_list   = ["203.0.113.0/32"]
 data_ip_filtering_allow_list   = ["203.0.113.0/32"]
-volume_group_size_by_hostname = {
-  "neteye01.aws.com" = 100
-  "neteye02.aws.com" = 200
+instances_properties = {
+  "neteye01.aws.com" = {
+    instance_type     = "c6i.2xlarge"
+    volume_group_size = 100
+  }
+  "neteye02.aws.com" = {
+    volume_group_size = 200
+  }
 }
 ```
 
@@ -189,13 +194,14 @@ aws ssm start-session --target <instance-id>
 | `availability_zone` | AZ for all resources | `eu-south-1a` |
 | `neteye_version` | NetEye version to deploy | — (required) |
 | `ec2_ami` | RHEL 8 AMI ID | `ami-0611ece2c5afd38ef` |
-| `instance_type` | EC2 instance type | `c6i.4xlarge` |
-| `volume_group_size` | Data volume size (GB) | `60` |
-| `volume_group_size_by_hostname` | Optional map to override Data volume size (GB) per node hostname_ext | `{}` |
+| `default_instance_type` | Default EC2 instance type | `c6i.4xlarge` |
+| `default_volume_group_size` | Default data volume size (GB) | `60` |
+| `instances_properties` | Optional per-node map (key: hostname_ext) with optional `instance_type` and/or `volume_group_size` overrides | `{}` |
 | `exposed_ports` | Ports exposed via public NLB | `[443, 5665]` |
 | `web_ip_filtering_allow_list` | CIDRs allowed through the NLB to reach the web interface, port 443 | — (required) |
 | `data_ip_filtering_allow_list` | CIDRs allowed through the NLB to reach other ports different from 443 (i.e. 5665, 9200, etc) | — (required) |
 | `outgoing_ip_allocation_id` | EIP allocation for NAT GW | — (required) |
 | `cluster_ip_allocation_id` | EIP allocation for public endpoint | — (required) |
+| `enable_shield_advanced` | Protect the public NLB with AWS Shield Advanced | `false` |
 | `project` | Resource name prefix | `neteye` |
 | `timezone` | Instance timezone | `Europe/Rome` |

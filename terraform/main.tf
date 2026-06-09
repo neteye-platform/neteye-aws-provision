@@ -105,7 +105,7 @@ resource "tls_private_key" "vm" {
 resource "aws_instance" "node" {
   count               = local.node_count
   ami                 = var.ec2_ami
-  instance_type       = var.instance_type
+  instance_type       = try(var.instances_properties[local.all_nodes[count.index]["hostname_ext"]].instance_type, var.default_instance_type)
   subnet_id           = aws_subnet.private.id
   private_ip          = local.all_nodes[count.index]["addr"]
   iam_instance_profile   = aws_iam_instance_profile.ssm.name
@@ -157,7 +157,7 @@ resource "aws_instance" "node" {
 
   ebs_block_device {
     device_name           = "/dev/sdb"
-    volume_size           = lookup(var.volume_group_size_by_hostname, local.all_nodes[count.index]["hostname_ext"], var.volume_group_size)
+    volume_size           = try(var.instances_properties[local.all_nodes[count.index]["hostname_ext"]].volume_group_size, var.default_volume_group_size)
     volume_type           = "gp3"
     delete_on_termination = true
     encrypted             = true

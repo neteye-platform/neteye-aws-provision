@@ -33,15 +33,18 @@ variable ec2_ami {
   default     = "ami-0611ece2c5afd38ef"
 }
 
-variable "volume_group_size" {
+variable "default_volume_group_size" {
   description = "Size in GB of the main vg00 volume group, used by default for NetEye services"
   type        = number
   default     = 60
 }
 
-variable "volume_group_size_by_hostname" {
-  description = "Optional per-host override for vg00 size in GB. Keys must match node hostname_ext in cluster_config.json"
-  type        = map(number)
+variable "instances_properties" {
+  description = "Optional per-host override for instance properties. Keys must match node hostname_ext in cluster_config.json. Each object can define instance_type and/or volume_group_size. Missing fields fall back to defaults."
+  type        = map(object({
+    instance_type     = optional(string)
+    volume_group_size = optional(number)
+  }))
   default     = {}
 }
 
@@ -53,6 +56,12 @@ variable outgoing_ip_allocation_id {
 variable cluster_ip_allocation_id {
   description = "EIP allocation ID for the cluster IP"
   type        = string
+}
+
+variable "enable_shield_advanced" {
+  description = "Whether to protect the public NLB with AWS Shield Advanced"
+  type        = bool
+  default     = false
 }
 
 variable exposed_ports {
@@ -77,8 +86,8 @@ variable project {
   default     = "neteye"
 }
 
-variable "instance_type" {
-  description = "EC2 instance type for the NetEye nodes (e.g., c6i.4xlarge)"
+variable "default_instance_type" {
+  description = "Default EC2 instance type for the NetEye nodes (e.g., c6i.4xlarge)"
   type        = string
   default     = "c6i.4xlarge"
 }
