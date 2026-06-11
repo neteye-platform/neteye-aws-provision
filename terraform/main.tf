@@ -11,21 +11,9 @@ locals {
   main_nodes    = local.cluster_config.Nodes
   voting_nodes  = try([local.cluster_config.VotingOnlyNode], [])
   elastic_nodes = try(local.cluster_config.ElasticOnlyNodes, [])
-  all_nodes     = concat(local.main_nodes, local.voting_nodes, local.elastic_nodes)
+  ido_nodes  = try([local.cluster_config.InfluxDBOnlyNodes], [])
+  all_nodes     = concat(local.main_nodes, local.voting_nodes, local.elastic_nodes, local.ido_nodes)
   node_count    = length(local.all_nodes)
-}
-
-# Use the minimum IP and netmask to calculate the CIDR block for the VPC
-data "dns_a_record_set" "outgoing" {
-  for_each = toset(concat(var.hostnames_allowed_for_outgoing, var.additional_hostnames_allowed_for_outgoing))
-  host     = each.value
-}
-
-locals {
-  resolved_outgoing_cidrs = flatten([
-    for host in concat(var.hostnames_allowed_for_outgoing, var.additional_hostnames_allowed_for_outgoing) :
-    [for ip in data.dns_a_record_set.outgoing[host].addrs : "${ip}/32"]
-  ])
 }
 
 data "external" "cidr_expand" {
@@ -69,7 +57,7 @@ resource "aws_security_group" "main" {
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
-    cidr_blocks = concat(var.ip_allowed_for_outgoing, local.resolved_outgoing_cidrs)
+    cidr_blocks = var.ip_allowed_for_outgoing
   }
 
   # Allow traffic to VPC Interface endpoints (SSM, SSMMessages, EC2Messages)

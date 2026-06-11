@@ -67,7 +67,7 @@ variable "enable_shield_advanced" {
 variable exposed_ports {
   description = "List of ports to expose via the public NLB"
   type        = list(number)
-  default     = [443, 5665]
+  default     = [443, 5665, 4222]
 }
 
 variable web_ip_filtering_allow_list {
@@ -92,38 +92,8 @@ variable "default_instance_type" {
   default     = "c6i.4xlarge"
 }
 
-variable "additional_hostnames_allowed_for_outgoing" {
-  description = "List of hostnames to resolve and allow for outgoing traffic, in addition to the default ones"
-  type        = list(string)
-  default     = []
-}
-
-variable "hostnames_allowed_for_outgoing" {
-  description = "List of hostnames to resolve and allow for outgoing traffic"
-  type        = list(string)
-  # Minimum documented
-  default     = [
-    "repo.wuerth-phoenix.com",
-    "api.neteye.cloud",
-    "cdn.redhat.com",
-    "cdn-ubi.redhat.com",
-    "cert-api.access.redhat.com",
-    "cert.cloud.redhat.com",
-    "subscription.rhsm.redhat.com",
-    "mirrors.fedoraproject.org",
-    "2.rhel.pool.ntp.org",
-    "grafana.com",
-    "yum.centreon.com",
-    "rubygems.org",
-    "epr.elastic.co",
-    # AWS-specific — only RHUI is needed here; SSM and S3 are
-    # handled by VPC endpoints + self/prefix-list egress rules.
-    "rhui.eu-south-1.aws.ce.redhat.com"
-  ]
-}
-
 variable "ip_allowed_for_outgoing" {
-  description = "List of CIDR blocks allowed for outgoing traffic (in addition to those resolved from hostnames)"
+  description = "List of CIDR blocks allowed for outgoing traffic"
   type        = list(string)
-  default     = []
+  default     = ["0.0.0.0/0"]
 }
