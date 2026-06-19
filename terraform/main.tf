@@ -103,6 +103,7 @@ resource "aws_instance" "node" {
     hostname = local.all_nodes[count.index]["hostname_ext"],
     DNF0             = var.neteye_version
     private_key      = tls_private_key.vm[count.index].private_key_openssh
+    public_key       = tls_private_key.vm[count.index].public_key_openssh
     public_keys      = join("\n", tls_private_key.vm[*].public_key_openssh)
     cluster_config = jsonencode(local.cluster_config)
     int_nlb_dns_name = aws_lb.internal.dns_name

@@ -15,6 +15,11 @@ ${private_key}
 PRIVKEY
 chmod 600 /root/.ssh/id_ed25519
 
+cat <<'PUBKEY' > /root/.ssh/id_ed25519.pub
+${public_key}
+PUBKEY
+chmod 600 /root/.ssh/id_ed25519.pub
+
 # Install all nodes' public keys into authorized_keys
 cat <<'PUBKEYS' >> /root/.ssh/authorized_keys
 ${public_keys}
