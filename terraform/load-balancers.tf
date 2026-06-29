@@ -33,11 +33,6 @@ resource "aws_lb" "public" {
   tags = { Name = "${var.project}-public-nlb" }
 }
 
-# resource "aws_shield_protection" "public_nlb" {
-#   count        = var.enable_shield_advanced ? 1 : 0
-#   name         = "${var.project}-public-nlb"
-#   resource_arn = aws_lb.public.arn
-# }
 
 resource "aws_lb_target_group" "vip" {
   for_each = { for port in var.exposed_ports : port => port }

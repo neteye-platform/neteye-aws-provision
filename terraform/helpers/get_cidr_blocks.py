@@ -79,6 +79,24 @@ def find_public_subnet(
     fail(f"No public /{PUBLIC_SUBNET_PREFIX} subnet available outside {private_subnet}")
 
 
+FIREWALL_SUBNET_PREFIX = 28
+
+
+def find_firewall_subnet(
+    vpc_subnet: ipaddress.IPv4Network,
+    private_subnet: ipaddress.IPv4Network,
+    public_subnet: ipaddress.IPv4Network,
+) -> ipaddress.IPv4Network:
+    for subnet in vpc_subnet.subnets(new_prefix=FIREWALL_SUBNET_PREFIX):
+        if not subnet.overlaps(private_subnet) and not subnet.overlaps(public_subnet):
+            return subnet
+
+    fail(
+        f"No firewall /{FIREWALL_SUBNET_PREFIX} subnet available outside "
+        f"{private_subnet} and {public_subnet}"
+    )
+
+
 # Accept only private network definitions
 data = json.load(sys.stdin)
 
@@ -100,6 +118,9 @@ result["private_subnet_prefix"] = str(private_subnet.prefixlen)
 public_subnet = find_public_subnet(vpc_subnet, private_subnet)
 result["public_subnet"] = str(public_subnet)
 result["public_subnet_prefix"] = str(public_subnet.prefixlen)
+
+firewall_subnet = find_firewall_subnet(vpc_subnet, private_subnet, public_subnet)
+result["firewall_subnet"] = str(firewall_subnet)
 
 public_hosts = usable_aws_hosts(public_subnet)
 
