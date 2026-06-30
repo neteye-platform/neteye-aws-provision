@@ -11,12 +11,23 @@ locals {
 
   web_ports  = [for p in var.exposed_ports : p if p == 443]
   data_ports = [for p in var.exposed_ports : p if p != 443]
+
+  # Stateful: each rule = 1 capacity unit
+  web_stateful_capacity  = length(local.web_ports)
+  data_stateful_capacity = length(local.data_ports)
+
+  # Stateless rule capacity = sum of (protocols × sources × dest_ports) per rule + 2 for VPC outbound/return rules
+  stateless_capacity = (
+    length(var.web_ip_filtering_allow_list) * length(local.web_ports) +
+    length(var.data_ip_filtering_allow_list) * length(local.data_ports) +
+    2
+  )
 }
 
 # --- Rule Groups ---
 
 resource "aws_networkfirewall_rule_group" "allow_web" {
-  capacity = 100
+  capacity = local.web_stateful_capacity
   name     = "${var.project}-allow-web"
   type     = "STATEFUL"
 
@@ -51,7 +62,7 @@ resource "aws_networkfirewall_rule_group" "allow_web" {
 }
 
 resource "aws_networkfirewall_rule_group" "allow_data" {
-  capacity = 100
+  capacity = local.data_stateful_capacity
   name     = "${var.project}-allow-data"
   type     = "STATEFUL"
 
@@ -87,7 +98,7 @@ resource "aws_networkfirewall_rule_group" "allow_data" {
 
 # Stateless rule: allow traffic from approved CIDRs, drop everything else
 resource "aws_networkfirewall_rule_group" "allow_approved_cidrs" {
-  capacity = 200
+  capacity = local.stateless_capacity
   name     = "${var.project}-allow-approved-cidrs"
   type     = "STATELESS"
 
@@ -143,13 +154,27 @@ resource "aws_networkfirewall_rule_group" "allow_approved_cidrs" {
           }
         }
 
-        # Allow return traffic (established connections from VPC)
+        # Allow outbound traffic from VPC (e.g. NAT → internet)
         stateless_rule {
           priority = 30
           rule_definition {
             actions = ["aws:forward_to_sfe"]
             match_attributes {
               source {
+                address_definition = aws_vpc.main.cidr_block
+              }
+              protocols = [6] # TCP
+            }
+          }
+        }
+
+        # Allow return traffic for outbound connections (internet → VPC via IGW)
+        stateless_rule {
+          priority = 40
+          rule_definition {
+            actions = ["aws:forward_to_sfe"]
+            match_attributes {
+              destination {
                 address_definition = aws_vpc.main.cidr_block
               }
               protocols = [6] # TCP

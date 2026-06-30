@@ -55,7 +55,7 @@ resource "aws_network_interface" "public" {
   count             = local.node_count
   subnet_id         = aws_subnet.public.id
   security_groups   = [aws_security_group.main.id]
-  private_ip        = local.public_nodes_ip[count.index]
+  private_ips        = [local.public_nodes_ip[count.index]]
   source_dest_check = false
   tags = {
     Name = "${var.project}-node-public-eni-${count.index + 1}"

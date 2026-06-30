@@ -85,24 +85,13 @@ resource "aws_security_group" "nlb" {
   vpc_id      = aws_vpc.main.id
 
   dynamic "ingress" {
-    for_each = { for port in var.exposed_ports : port => port if port == 443 }
+    for_each = { for port in var.exposed_ports : port => port }
     content {
-      description = "Allow TCP ${ingress.value} from approved client CIDRs"
+      description = "Allow TCP ${ingress.value} (source filtering enforced by Network Firewall)"
       from_port   = ingress.value
       to_port     = ingress.value
       protocol    = "tcp"
-      cidr_blocks = var.web_ip_filtering_allow_list
-    }
-  }
-
-  dynamic "ingress" {
-    for_each = { for port in var.exposed_ports : port => port if port != 443 }
-    content {
-      description = "Allow TCP ${ingress.value} from approved client CIDRs"
-      from_port   = ingress.value
-      to_port     = ingress.value
-      protocol    = "tcp"
-      cidr_blocks = var.data_ip_filtering_allow_list
+      cidr_blocks = ["0.0.0.0/0"]
     }
   }
 
