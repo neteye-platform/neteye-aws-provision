@@ -31,7 +31,8 @@ resource "aws_iam_role_policy" "cluster_failover" {
           "elasticloadbalancing:DescribeListeners",
           "elasticloadbalancing:DescribeLoadBalancers",
           "elasticloadbalancing:ModifyTargetGroupAttributes",
-          "elasticloadbalancing:ModifyTargetGroup"
+          "elasticloadbalancing:ModifyTargetGroup",
+          "elasticloadbalancing:AddTags"
         ],
         Resource = "*"
       }
