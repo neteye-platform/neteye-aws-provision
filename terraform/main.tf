@@ -117,6 +117,7 @@ resource "aws_instance" "node" {
     aws_secret_access_key = aws_iam_access_key.cluster_node.secret
     project              = var.project
     aws_region          = var.aws_region
+    frontend_domain      = var.frontend_domain
   })
 
 

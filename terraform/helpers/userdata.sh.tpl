@@ -91,6 +91,13 @@ done
 
 echo "${cluster_config}" > /etc/neteye-cluster.template
 
+cat <<'ENVFILE' > /etc/neteye-environment
+neteye:
+  # The domain through which this NetEye installation is accessed by users and systems.
+  # This may be a public internet domain or a private intranet domain.
+  frontend_domain: "${frontend_domain}"
+ENVFILE
+
 # Write cluster configuration changing the cluster IP, CIDR and cluster interface.
 jq \
   '.ClusterIp = $ip

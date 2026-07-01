@@ -97,3 +97,8 @@ variable "ip_allowed_for_outgoing" {
   type        = list(string)
   default     = ["0.0.0.0/0"]
 }
+
+variable "frontend_domain" {
+  description = "The domain through which this NetEye installation is accessed by users and systems. This may be a public internet domain or a private intranet domain"
+  type        = string
+}
