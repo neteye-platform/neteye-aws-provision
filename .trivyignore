@@ -6,3 +6,6 @@ AWS-0053
 
 # VPC logs: avoiding enabling cloud watch by default
 AWS-0178
+
+# Unrestricted egress: necessary for now since we cannot whitelist domains at this time
+AWS-0104
