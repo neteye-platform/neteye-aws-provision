@@ -11,21 +11,9 @@ locals {
   main_nodes    = local.cluster_config.Nodes
   voting_nodes  = try([local.cluster_config.VotingOnlyNode], [])
   elastic_nodes = try(local.cluster_config.ElasticOnlyNodes, [])
-  all_nodes     = concat(local.main_nodes, local.voting_nodes, local.elastic_nodes)
+  ido_nodes  = try([local.cluster_config.InfluxDBOnlyNodes], [])
+  all_nodes     = concat(local.main_nodes, local.voting_nodes, local.elastic_nodes, local.ido_nodes)
   node_count    = length(local.all_nodes)
-}
-
-# Use the minimum IP and netmask to calculate the CIDR block for the VPC
-data "dns_a_record_set" "outgoing" {
-  for_each = toset(concat(var.hostnames_allowed_for_outgoing, var.additional_hostnames_allowed_for_outgoing))
-  host     = each.value
-}
-
-locals {
-  resolved_outgoing_cidrs = flatten([
-    for host in concat(var.hostnames_allowed_for_outgoing, var.additional_hostnames_allowed_for_outgoing) :
-    [for ip in data.dns_a_record_set.outgoing[host].addrs : "${ip}/32"]
-  ])
 }
 
 data "external" "cidr_expand" {
@@ -69,7 +57,7 @@ resource "aws_security_group" "main" {
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
-    cidr_blocks = concat(var.ip_allowed_for_outgoing, local.resolved_outgoing_cidrs)
+    cidr_blocks = var.ip_allowed_for_outgoing
   }
 
   # Allow traffic to VPC Interface endpoints (SSM, SSMMessages, EC2Messages)
@@ -105,7 +93,7 @@ resource "tls_private_key" "vm" {
 resource "aws_instance" "node" {
   count               = local.node_count
   ami                 = var.ec2_ami
-  instance_type       = var.instance_type
+  instance_type       = try(var.instances_properties[local.all_nodes[count.index]["hostname_ext"]].instance_type, var.default_instance_type)
   subnet_id           = aws_subnet.private.id
   private_ip          = local.all_nodes[count.index]["addr"]
   iam_instance_profile   = aws_iam_instance_profile.ssm.name
@@ -115,6 +103,7 @@ resource "aws_instance" "node" {
     hostname = local.all_nodes[count.index]["hostname_ext"],
     DNF0             = var.neteye_version
     private_key      = tls_private_key.vm[count.index].private_key_openssh
+    public_key       = tls_private_key.vm[count.index].public_key_openssh
     public_keys      = join("\n", tls_private_key.vm[*].public_key_openssh)
     cluster_config = jsonencode(local.cluster_config)
     int_nlb_dns_name = aws_lb.internal.dns_name
@@ -128,6 +117,7 @@ resource "aws_instance" "node" {
     aws_secret_access_key = aws_iam_access_key.cluster_node.secret
     project              = var.project
     aws_region          = var.aws_region
+    frontend_domain      = var.frontend_domain
   })
 
 
@@ -150,14 +140,14 @@ resource "aws_instance" "node" {
 
   root_block_device {
     volume_type           = "gp3"
-    volume_size           = 40
+    volume_size           = 70
     delete_on_termination = true
     encrypted             = true
   }
 
   ebs_block_device {
     device_name           = "/dev/sdb"
-    volume_size           = var.volume_group_size
+    volume_size           = try(var.instances_properties[local.all_nodes[count.index]["hostname_ext"]].volume_group_size, var.default_volume_group_size)
     volume_type           = "gp3"
     delete_on_termination = true
     encrypted             = true

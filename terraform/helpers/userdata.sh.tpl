@@ -15,6 +15,11 @@ ${private_key}
 PRIVKEY
 chmod 600 /root/.ssh/id_ed25519
 
+cat <<'PUBKEY' > /root/.ssh/id_ed25519.pub
+${public_key}
+PUBKEY
+chmod 600 /root/.ssh/id_ed25519.pub
+
 # Install all nodes' public keys into authorized_keys
 cat <<'PUBKEYS' >> /root/.ssh/authorized_keys
 ${public_keys}
@@ -85,6 +90,13 @@ nmcli -t -f NAME,DEVICE connection show --active | while IFS=: read -r name dev;
 done
 
 echo "${cluster_config}" > /etc/neteye-cluster.template
+
+cat <<'ENVFILE' > /etc/neteye-environment
+neteye:
+  # The domain through which this NetEye installation is accessed by users and systems.
+  # This may be a public internet domain or a private intranet domain.
+  frontend_domain: "${frontend_domain}"
+ENVFILE
 
 # Write cluster configuration changing the cluster IP, CIDR and cluster interface.
 jq \

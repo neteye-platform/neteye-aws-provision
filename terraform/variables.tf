@@ -33,10 +33,19 @@ variable ec2_ami {
   default     = "ami-0611ece2c5afd38ef"
 }
 
-variable "volume_group_size" {
+variable "default_volume_group_size" {
   description = "Size in GB of the main vg00 volume group, used by default for NetEye services"
   type        = number
   default     = 60
+}
+
+variable "instances_properties" {
+  description = "Optional per-host override for instance properties. Keys must match node hostname_ext in cluster_config.json. Each object can define instance_type and/or volume_group_size. Missing fields fall back to defaults."
+  type        = map(object({
+    instance_type     = optional(string)
+    volume_group_size = optional(number)
+  }))
+  default     = {}
 }
 
 variable outgoing_ip_allocation_id {
@@ -49,14 +58,25 @@ variable cluster_ip_allocation_id {
   type        = string
 }
 
+variable "enable_shield_advanced" {
+  description = "Whether to protect the public NLB with AWS Shield Advanced"
+  type        = bool
+  default     = false
+}
+
 variable exposed_ports {
   description = "List of ports to expose via the public NLB"
   type        = list(number)
-  default     = [443, 5665]
+  default     = [443, 5665, 4222]
 }
 
-variable ip_filtering_allow_list {
-  description = "List of CIDR blocks allowed to access the cluster"
+variable web_ip_filtering_allow_list {
+  description = "List of CIDR blocks allowed to access the WEB interface of the cluster"
+  type        = list(string)
+}
+
+variable data_ip_filtering_allow_list {
+  description = "List of CIDR blocks allowed to contact the cluster for data collection (e.g., from satellite sites)"
   type        = list(string)
 }
 
@@ -66,44 +86,19 @@ variable project {
   default     = "neteye"
 }
 
-variable "instance_type" {
-  description = "EC2 instance type for the NetEye nodes (e.g., c6i.4xlarge)"
+variable "default_instance_type" {
+  description = "Default EC2 instance type for the NetEye nodes (e.g., c6i.4xlarge)"
   type        = string
   default     = "c6i.4xlarge"
 }
 
-variable "additional_hostnames_allowed_for_outgoing" {
-  description = "List of hostnames to resolve and allow for outgoing traffic, in addition to the default ones"
-  type        = list(string)
-  default     = []
-}
-
-variable "hostnames_allowed_for_outgoing" {
-  description = "List of hostnames to resolve and allow for outgoing traffic"
-  type        = list(string)
-  # Minimum documented
-  default     = [
-    "repo.wuerth-phoenix.com",
-    "api.neteye.cloud",
-    "cdn.redhat.com",
-    "cdn-ubi.redhat.com",
-    "cert-api.access.redhat.com",
-    "cert.cloud.redhat.com",
-    "subscription.rhsm.redhat.com",
-    "mirrors.fedoraproject.org",
-    "2.rhel.pool.ntp.org",
-    "grafana.com",
-    "yum.centreon.com",
-    "rubygems.org",
-    "epr.elastic.co",
-    # AWS-specific — only RHUI is needed here; SSM and S3 are
-    # handled by VPC endpoints + self/prefix-list egress rules.
-    "rhui.eu-south-1.aws.ce.redhat.com"
-  ]
-}
-
 variable "ip_allowed_for_outgoing" {
-  description = "List of CIDR blocks allowed for outgoing traffic (in addition to those resolved from hostnames)"
+  description = "List of CIDR blocks allowed for outgoing traffic"
   type        = list(string)
-  default     = []
+  default     = ["0.0.0.0/0"]
+}
+
+variable "frontend_domain" {
+  description = "The domain through which this NetEye installation is accessed by users and systems. This may be a public internet domain or a private intranet domain"
+  type        = string
 }

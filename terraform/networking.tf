@@ -20,7 +20,7 @@ resource "aws_subnet" "private" {
   cidr_block              = data.external.cidr_expand.result.private_subnet
   map_public_ip_on_launch = false
   availability_zone       = var.availability_zone
-  tags = { Name = "${var.project}-private" }
+  tags                    = { Name = "${var.project}-private" }
 }
 
 # Public subnet (for NAT gateway)
@@ -29,7 +29,15 @@ resource "aws_subnet" "public" {
   cidr_block              = data.external.cidr_expand.result.public_subnet
   map_public_ip_on_launch = false
   availability_zone       = var.availability_zone
-  tags = { Name = "${var.project}-public" }
+  tags                    = { Name = "${var.project}-public" }
+}
+
+# Firewall subnet (for AWS Network Firewall endpoint)
+resource "aws_subnet" "firewall" {
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = data.external.cidr_expand.result.firewall_subnet
+  availability_zone = var.availability_zone
+  tags              = { Name = "${var.project}-firewall" }
 }
 
 resource "aws_vpc_endpoint" "s3" {
@@ -37,17 +45,17 @@ resource "aws_vpc_endpoint" "s3" {
   service_name      = "com.amazonaws.eu-south-1.s3"
   vpc_endpoint_type = "Gateway"
 
-  route_table_ids = [aws_route_table.public.id, aws_route_table.private.id]
+  route_table_ids = [aws_route_table.public.id, aws_route_table.private.id, aws_route_table.firewall.id]
 }
 
 ## NI
 
 # Create a network interface in the public subnet for each instance
 resource "aws_network_interface" "public" {
-  count           = local.node_count
-  subnet_id       = aws_subnet.public.id
-  security_groups = [aws_security_group.main.id]
-  private_ip = local.public_nodes_ip[count.index]
+  count             = local.node_count
+  subnet_id         = aws_subnet.public.id
+  security_groups   = [aws_security_group.main.id]
+  private_ips        = [local.public_nodes_ip[count.index]]
   source_dest_check = false
   tags = {
     Name = "${var.project}-node-public-eni-${count.index + 1}"
@@ -78,13 +86,13 @@ resource "aws_nat_gateway" "main" {
   tags          = { Name = "${var.project}-nat-gw" }
 }
 
-# Public subnet -> Internet Gateway
+# Public subnet -> Firewall endpoint (for outbound/return inspection)
 resource "aws_route_table" "public" {
   vpc_id = aws_vpc.main.id
 
   route {
-    cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.neteye-igw.id
+    cidr_block      = "0.0.0.0/0"
+    vpc_endpoint_id = local.fw_endpoint_id
   }
 
   tags = {
@@ -95,6 +103,44 @@ resource "aws_route_table" "public" {
 resource "aws_route_table_association" "public" {
   subnet_id      = aws_subnet.public.id
   route_table_id = aws_route_table.public.id
+}
+
+# Firewall subnet -> Internet Gateway
+resource "aws_route_table" "firewall" {
+  vpc_id = aws_vpc.main.id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.neteye-igw.id
+  }
+
+  tags = {
+    Name = "${var.project}-firewall-rt"
+  }
+}
+
+resource "aws_route_table_association" "firewall" {
+  subnet_id      = aws_subnet.firewall.id
+  route_table_id = aws_route_table.firewall.id
+}
+
+# IGW ingress route table: sends inbound traffic to firewall for inspection
+resource "aws_route_table" "igw_ingress" {
+  vpc_id = aws_vpc.main.id
+
+  route {
+    cidr_block      = data.external.cidr_expand.result.public_subnet
+    vpc_endpoint_id = local.fw_endpoint_id
+  }
+
+  tags = {
+    Name = "${var.project}-igw-ingress-rt"
+  }
+}
+
+resource "aws_route_table_association" "igw_ingress" {
+  gateway_id     = aws_internet_gateway.neteye-igw.id
+  route_table_id = aws_route_table.igw_ingress.id
 }
 
 # Private subnet -> NAT Gateway

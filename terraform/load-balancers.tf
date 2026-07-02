@@ -33,6 +33,7 @@ resource "aws_lb" "public" {
   tags = { Name = "${var.project}-public-nlb" }
 }
 
+
 resource "aws_lb_target_group" "vip" {
   for_each = { for port in var.exposed_ports : port => port }
 
@@ -86,11 +87,11 @@ resource "aws_security_group" "nlb" {
   dynamic "ingress" {
     for_each = { for port in var.exposed_ports : port => port }
     content {
-      description = "Allow TCP ${ingress.value} from approved client CIDRs"
+      description = "Allow TCP ${ingress.value} (source filtering enforced by Network Firewall)"
       from_port   = ingress.value
       to_port     = ingress.value
       protocol    = "tcp"
-      cidr_blocks = var.ip_filtering_allow_list
+      cidr_blocks = ["0.0.0.0/0"]
     }
   }
 
