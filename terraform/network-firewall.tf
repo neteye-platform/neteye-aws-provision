@@ -12,9 +12,29 @@ locals {
   web_ports  = [for p in var.exposed_ports : p if p == 443]
   data_ports = [for p in var.exposed_ports : p if p != 443]
 
-  # Stateful: each rule = 1 capacity unit
-  web_stateful_capacity  = length(local.web_ports)
-  data_stateful_capacity = length(local.data_ports)
+  # Stateful: one rule per (CIDR, port) combination
+  web_rules = flatten([
+    for ci, cidr in var.web_ip_filtering_allow_list : [
+      for pi, port in local.web_ports : {
+        cidr = cidr
+        port = port
+        sid  = 10000 + ci * 100 + pi + 1
+      }
+    ]
+  ])
+  data_rules = flatten([
+    for ci, cidr in var.data_ip_filtering_allow_list : [
+      for pi, port in local.data_ports : {
+        cidr = cidr
+        port = port
+        sid  = 20000 + ci * 100 + pi + 1
+      }
+    ]
+  ])
+
+  web_stateful_capacity      = length(local.web_rules)
+  data_stateful_capacity     = length(local.data_rules)
+  outbound_stateful_capacity = length(var.ip_allowed_for_outgoing)
 
   # Stateless rule capacity = sum of (protocols × sources × dest_ports) per rule + 2 for VPC outbound/return rules
   stateless_capacity = (
@@ -34,20 +54,20 @@ resource "aws_networkfirewall_rule_group" "allow_web" {
   rule_group {
     rules_source {
       dynamic "stateful_rule" {
-        for_each = local.web_ports
+        for_each = local.web_rules
         content {
           action = "PASS"
           header {
             destination      = "ANY"
-            destination_port = tostring(stateful_rule.value)
+            destination_port = tostring(stateful_rule.value.port)
             direction        = "FORWARD"
             protocol         = "TCP"
-            source           = "ANY"
+            source           = stateful_rule.value.cidr
             source_port      = "ANY"
           }
           rule_option {
             keyword  = "sid"
-            settings = ["1${stateful_rule.value}"]
+            settings = [tostring(stateful_rule.value.sid)]
           }
         }
       }
@@ -69,20 +89,20 @@ resource "aws_networkfirewall_rule_group" "allow_data" {
   rule_group {
     rules_source {
       dynamic "stateful_rule" {
-        for_each = local.data_ports
+        for_each = local.data_rules
         content {
           action = "PASS"
           header {
             destination      = "ANY"
-            destination_port = tostring(stateful_rule.value)
+            destination_port = tostring(stateful_rule.value.port)
             direction        = "FORWARD"
             protocol         = "TCP"
-            source           = "ANY"
+            source           = stateful_rule.value.cidr
             source_port      = "ANY"
           }
           rule_option {
             keyword  = "sid"
-            settings = ["2${stateful_rule.value}"]
+            settings = [tostring(stateful_rule.value.sid)]
           }
         }
       }
@@ -94,6 +114,41 @@ resource "aws_networkfirewall_rule_group" "allow_data" {
   }
 
   tags = { Name = "${var.project}-allow-data" }
+}
+
+resource "aws_networkfirewall_rule_group" "allow_outbound" {
+  capacity = local.outbound_stateful_capacity
+  name     = "${var.project}-allow-outbound"
+  type     = "STATEFUL"
+
+  rule_group {
+    rules_source {
+      dynamic "stateful_rule" {
+        for_each = var.ip_allowed_for_outgoing
+        content {
+          action = "PASS"
+          header {
+            destination      = stateful_rule.value
+            destination_port = "ANY"
+            direction        = "FORWARD"
+            protocol         = "TCP"
+            source           = aws_vpc.main.cidr_block
+            source_port      = "ANY"
+          }
+          rule_option {
+            keyword  = "sid"
+            settings = [tostring(90000 + stateful_rule.key + 1)]
+          }
+        }
+      }
+    }
+
+    stateful_rule_options {
+      rule_order = "STRICT_ORDER"
+    }
+  }
+
+  tags = { Name = "${var.project}-allow-outbound" }
 }
 
 # Stateless rule: allow traffic from approved CIDRs, drop everything else
@@ -178,6 +233,10 @@ resource "aws_networkfirewall_rule_group" "allow_approved_cidrs" {
                 address_definition = aws_vpc.main.cidr_block
               }
               protocols = [6] # TCP
+              tcp_flag {
+                flags = ["ACK"]
+                masks = ["ACK"]
+              }
             }
           }
         }
@@ -202,7 +261,7 @@ resource "aws_networkfirewall_firewall_policy" "main" {
       resource_arn = aws_networkfirewall_rule_group.allow_approved_cidrs.arn
     }
 
-    stateful_default_actions = ["aws:drop_established"]
+    stateful_default_actions = ["aws:drop_strict"]
 
     stateful_engine_options {
       rule_order = "STRICT_ORDER"
@@ -210,11 +269,16 @@ resource "aws_networkfirewall_firewall_policy" "main" {
 
     stateful_rule_group_reference {
       priority     = 1
-      resource_arn = aws_networkfirewall_rule_group.allow_web.arn
+      resource_arn = aws_networkfirewall_rule_group.allow_outbound.arn
     }
 
     stateful_rule_group_reference {
       priority     = 2
+      resource_arn = aws_networkfirewall_rule_group.allow_web.arn
+    }
+
+    stateful_rule_group_reference {
+      priority     = 3
       resource_arn = aws_networkfirewall_rule_group.allow_data.arn
     }
   }
