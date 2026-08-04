@@ -5,6 +5,14 @@ dnf install -y https://s3.eu-south-1.amazonaws.com/amazon-ssm-eu-south-1/latest/
 
 systemctl enable --now amazon-ssm-agent
 
+# Enable cgroupv2 since in RHEL 8.6+ the default is cgroupv2 and we require them for kubernetes
+# We cannot do it in the Ansible playbook since we currently document it to run it 
+# from the node itself to reduce the requirement for the user during provisioning
+if [[ $(stat -fc %T /sys/fs/cgroup/) != "cgroup2fs" ]]; then
+  grubby --update-kernel=ALL --args='systemd.unified_cgroup_hierarchy=1 psi=1'
+  reboot
+fi
+
 # Inter-node SSH keys
 mkdir -p /root/.ssh
 chmod 700 /root/.ssh
