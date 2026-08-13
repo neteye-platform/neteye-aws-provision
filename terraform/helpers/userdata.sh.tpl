@@ -5,14 +5,6 @@ dnf install -y https://s3.eu-south-1.amazonaws.com/amazon-ssm-eu-south-1/latest/
 
 systemctl enable --now amazon-ssm-agent
 
-# Enable cgroupv2 since in RHEL 8.6+ the default is cgroupv2 and we require them for kubernetes
-# We cannot do it in the Ansible playbook since we currently document it to run it 
-# from the node itself to reduce the requirement for the user during provisioning
-if [[ $(stat -fc %T /sys/fs/cgroup/) != "cgroup2fs" ]]; then
-  grubby --update-kernel=ALL --args='systemd.unified_cgroup_hierarchy=1 psi=1'
-  reboot
-fi
-
 # Inter-node SSH keys
 mkdir -p /root/.ssh
 chmod 700 /root/.ssh
@@ -85,9 +77,16 @@ ${n.addr} ${n.hostname} ${(split(".", n.hostname))[0]}
 %{ endfor ~}
 HOSTS
 
-# Add trusted fingerprints for all nodes to known_hosts to avoid SSH warnings
+# Add trusted fingerprints for all nodes to known_hosts; retry until sshd is up
 %{ for n in all_nodes ~}
-ssh-keyscan ${n.hostname} >> ~/.ssh/known_hosts
+for i in $(seq 1 30); do
+  result=$(ssh-keyscan -T 5 ${n.hostname} 2>/dev/null)
+  if [ -n "$result" ]; then
+    echo "$result" >> /root/.ssh/known_hosts
+    break
+  fi
+  sleep 10
+done
 %{ endfor ~}
 
 # Rename connections to match the device name, so that they are consistent across reboots and can be easily referenced in Ansible playbooks
@@ -99,11 +98,23 @@ done
 
 echo "${cluster_config}" > /etc/neteye-cluster.template
 
-cat <<'ENVFILE' > /etc/neteye-environment
+cat <<'ENVFILE' > /etc/neteye-environment.yaml
 neteye:
   # The domain through which this NetEye installation is accessed by users and systems.
   # This may be a public internet domain or a private intranet domain.
   frontend_domain: "${frontend_domain}"
+
+  rke2:
+    # Cluster CIDR for the Kubernetes cluster
+    # Warning: changing this value after installing the cluster has undefined behavior and is not supported
+    network:
+        pod_cidr: "${rke2_pod_cidr}"
+        svc_cidr: "${rke2_svc_cidr}"
+
+        # IP Address pool for the cluster for services loadbalancing. This is used for services exposed by the kubernetes
+        # cluster
+        # Warning: changing this value after installing the cluster has undefined behavior and is not supported
+        service_loadbalancer_cidr: "${rke2_service_loadbalancer_cidr}"
 ENVFILE
 
 # Write cluster configuration changing the cluster IP, CIDR and cluster interface.
@@ -142,4 +153,21 @@ cat <<'PHPINI' > /neteye/local/php/conf/php.d/30-timezone.ini
 date.timezone = ${timezone}
 PHPINI
 
+# Enable cgroupv2 since in RHEL 8.6+ the default is cgroupv2 and we require them for kubernetes
+# We cannot do it in the Ansible playbook since we currently document it to run it 
+# from the node itself to reduce the requirement for the user during provisioning
+if [[ $(stat -fc %T /sys/fs/cgroup/) != "cgroup2fs" ]]; then
+  grubby --update-kernel=ALL --args='systemd.unified_cgroup_hierarchy=1 psi=1'
+  # Create a cloud-init per-boot script that touches userdata_done after reboot.
+  # This marker is consumed by step 5 to detect userdata completion.
+  cat <<'USERDATADONE' > /var/lib/cloud/scripts/per-boot/userdata_done.sh
+#!/bin/bash
 touch /root/userdata_done
+USERDATADONE
+  chmod +x /var/lib/cloud/scripts/per-boot/userdata_done.sh
+  # Reboot to enable cgroupv2
+  reboot
+else
+  # cgroupv2 is already active; mark userdata completion now.
+  touch /root/userdata_done
+fi

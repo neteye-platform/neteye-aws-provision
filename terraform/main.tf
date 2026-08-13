@@ -118,6 +118,9 @@ resource "aws_instance" "node" {
     project              = var.project
     aws_region          = var.aws_region
     frontend_domain      = var.frontend_domain
+    rke2_pod_cidr        = var.rke2_pod_cidr
+    rke2_svc_cidr        = var.rke2_svc_cidr
+    rke2_service_loadbalancer_cidr = var.rke2_service_loadbalancer_cidr
   })
 
 
