@@ -102,3 +102,21 @@ variable "frontend_domain" {
   description = "The domain through which this NetEye installation is accessed by users and systems. This may be a public internet domain or a private intranet domain"
   type        = string
 }
+
+variable "rke2_pod_cidr" {
+  description = "The CIDR for the RKE2 pods network"
+  type        = string
+  default     = "10.42.0.0/16"
+}
+
+variable "rke2_svc_cidr" {
+  description = "The CIDR for the RKE2 services network"
+  type        = string
+  default     = "10.43.0.0/16"
+}
+
+variable "rke2_service_loadbalancer_cidr" {
+  description = "The CIDR for the RKE2 service load balancer"
+  type        = string
+  default     = "10.44.0.0/24"
+}
