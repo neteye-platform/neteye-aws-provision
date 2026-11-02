@@ -11,7 +11,7 @@ locals {
   main_nodes    = local.cluster_config.Nodes
   voting_nodes  = try([local.cluster_config.VotingOnlyNode], [])
   elastic_nodes = try(local.cluster_config.ElasticOnlyNodes, [])
-  ido_nodes  = try([local.cluster_config.InfluxDBOnlyNodes], [])
+  ido_nodes  = try(local.cluster_config.InfluxDBOnlyNodes, [])
   all_nodes     = concat(local.main_nodes, local.voting_nodes, local.elastic_nodes, local.ido_nodes)
   node_count    = length(local.all_nodes)
 }
